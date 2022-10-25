@@ -8,3 +8,6 @@
 # Axios创建实例的过程理解
 1. 配置对象位置：`lib\defaults\index.js`
 2. 28~55行解析实例创建过程： `lib\axios.js`
+# 理解Axios链式调用的原理
+1. 拦截器类源码：`lib\core\InterceptorManager.js`
+2. 87~125行实现Promise链式调用：`lib\core\Axios.js`
