@@ -17,3 +17,10 @@
 # 理解发起网络请求的核心方法dispatchRequest()
 1. 位置：`lib\core\dispatchRequest.js`;
 2. 大体是对config中的请求头(headers)、请求体(data)进行数据的转换或处理后，再利用适配器adapter实现在node或者浏览器环境下发起网络请求。adapter返回的是一个Promise对象，dispatchRequest()函数返回的也是Promise对象。
+# dispatchRequest()中adapter适配器模式的实现 (重点)
+主要学习：适配器模式。
+1. 适配器被调用的路径：`lib\core\dispatchRequest.js`的46行。
+2. 适配器定义路径：`lib\defaults\index.js` 的 65行、22~32行。getDefaultAdapter()实现适配器的目的，判断axios所运行的是什么环境进而使用不同类型的适配器发起网络请求(node的http库 浏览器的xhr库)。
+3. 适配器实现路径: `lib\adapters\index.js`。返回所处环境下的node或xhr适配器的实现函数。
+4. xhr适配器路径： `lib\adapters\xhr.js` ，http适配器路径：`lib\adapters\http.js`。
+# adapter中xhr适配器的实现理解
