@@ -11,3 +11,6 @@
 # 理解Axios链式调用的原理
 1. 拦截器类源码：`lib\core\InterceptorManager.js`
 2. 87~125行实现Promise链式调用：`lib\core\Axios.js`
+# Axios拦截器的实现和理解
+1. 拦截器类源码：`lib\core\InterceptorManager.js`
+2. 实现思路：创建一个栈，存放若干个拦截器对象，对象中包括Promise决议和拒绝的回调函数等。源码中用use()方法把拦截器对象添加到栈中，且返回在栈中的元素索引。索引是拦截器对象的Id,实现移除栈中某个对象的方法eject()。forEach方法遍历栈中所有元素，并且元素作为forEach回调函数的参数去使用。（场景：理解Axios链式调用的原理）
