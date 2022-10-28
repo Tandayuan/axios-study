@@ -24,3 +24,10 @@
 3. 适配器实现路径: `lib\adapters\index.js`。返回所处环境下的node或xhr适配器的实现函数。
 4. xhr适配器路径： `lib\adapters\xhr.js` ，http适配器路径：`lib\adapters\http.js`。
 # adapter中xhr适配器的实现理解
+1. 源码路径：`lib\adapters\xhr.js`
+2. 对传入的`config`对象数据处理或转换
+3. `let request = new XMLHttpRequest();` 创建一个xhr的请求实例对象。
+4. open()方法初始化xhr的请求参数、注册xhr对象的onloadend,onabort,onerror,ontimeout事件监听和回调函数。
+5. xhr对象中配置一些业务遇到的场景，用户按需选配加入到xhr对象中。
+6. 关键：适配器函数返回一个Promise对象，因此onloadend是resolve服务器响应数据以及一些config组成的Promise对象。剩下的
+onabort,onerror,ontimeout都是reject一个错误对象，反馈错误原因给上游处理。
