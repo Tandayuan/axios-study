@@ -31,3 +31,42 @@
 5. xhr对象中配置一些业务遇到的场景，用户按需选配加入到xhr对象中。
 6. 关键：适配器函数返回一个Promise对象，因此onloadend是resolve服务器响应数据以及一些config组成的Promise对象。剩下的
 onabort,onerror,ontimeout都是reject一个错误对象，反馈错误原因给上游处理。
+# 主动取消网络请求的两种情况实现理解
+1. 第一种：
+    + 情况：请求拦截器执行之后到请求适配器执行之前主动取消
+    + 情况：配器执行之后到响应拦截器执行之前主动取消
+    + 源码实现路径：`lib\cancel\CancelToken.js`中throwIfRequested()
+    + 调用场景路径：`lib\core\dispatchRequest.js`中调用throwIfCancellationRequested(config)之处。
+    + 实现思路：调用主动取消请求方法cancel(),CancelToken实例中this.reason被赋值CanceledError对象。throwIfCancellationRequested(config)中调用CancelToken.throwIfRequested(),throwIfRequested中判断reason有值时抛出reason的值也就是被赋值的错误对象。相应拦截器会捕获到主动取消请求的错误对象，并进行逻辑处理。
+2. 第二种:
+    + 情况：已经开始执行xhr适配器方法,并且在发送网络请求request.send()之前主动取消
+    + 源码实现路径：`lib\cancel\CancelToken.js`中subscribe()、unsubscribe()以及CancelToken的构造函数29-38行的`token._listeners[i](cancel)`关键代码。
+    + 调用场景路径： `lib\adapters\xhr.js`中done()、onCanceled()以及`config.cancelToken && config.cancelToken.subscribe(onCanceled)`
+    + 实现思路：实现xhr请求取消的方法onCanceled()加入到主动取消请求队列中`subscribe(onCanceled)`,等待主动取消请求方法cancel()的调用。当cancel()调用后,CancelToken的构造的Promise从待决议变成敲定状态从而链式执行下去`resolvePromise(token.reason)`,并且reason对象作为Promise的第一个返回值传递下去`this.reason = new CanceledError(message, config, request)`。当执行第一个Promise.then时,reason对象作为onfulfilled回调方法的参数同时传递给`token._listeners[i](cancel)`执行取消请求订阅队列中的方法,这个方法调用xhr的原生api实现`request.abort()`实现xhr的请求取消，同时也抛出CanceledError错误对象给响应拦截器捕获处理主动取消请求的逻辑。
+    + 附加说明：如果config配置了`config.cancelToken`，那么在xhr请求发出之前会被默认添加到取消请求队列。但是直至xhr适配器执行完都没有调用cancel()的情况下,会执行done()方法。这个方法主要实现删除默认添加进订阅队列的方法。
+3. 实现关键核心点：`lib\cancel\CancelToken.js`
+    ```javascript
+    static source() {
+        let cancel;
+        const token = new CancelToken(function executor(c) {
+            cancel = c;
+        });
+        return {
+            token,
+            cancel
+        };
+    }
+    ```
+
+    ```javascript 
+    executor(function cancel(message, config, request) {
+        if (token.reason) {
+            // Cancellation has already been requested
+            return;
+        }
+
+        token.reason = new CanceledError(message, config, request);
+        resolvePromise(token.reason);
+    });
+    ```
+    
